@@ -11,6 +11,8 @@ import type { FullAutoErrorMode } from "./auto-approval-mode.js";
 import { AutoApprovalMode } from "./auto-approval-mode.js";
 import { log } from "./logger/log.js";
 import { providers } from "./providers.js";
+import { CLI_VERSION } from "./session.js";
+import { spawnSync } from "child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load as loadYaml, dump as dumpYaml } from "js-yaml";
 import { homedir } from "os";
@@ -65,7 +67,49 @@ export function getBaseUrl(provider: string = "openai"): string | undefined {
   return undefined;
 }
 
+// GitHub Copilot token fetch and cache
+let cachedCopilotToken: string | undefined;
+let copilotTokenExpiresAt: number | undefined;
+
+function getCopilotToken(): string | undefined {
+  const pat = process.env["GITHUB_COPILOT_TOKEN"];
+  if (!pat) {
+    throw new Error("Missing GITHUB_COPILOT_TOKEN env var for Copilot provider");
+  }
+  const now = Date.now();
+  if (cachedCopilotToken && copilotTokenExpiresAt && now < copilotTokenExpiresAt) {
+    return cachedCopilotToken;
+  }
+  const result = spawnSync("curl", [
+    "-s",
+    "-H", `Authorization: Token ${pat}`,
+    "-H", "User-Agent: GitHubCopilot/1.0.0",
+    "-H", `Editor-Version: CodexCLI/${CLI_VERSION}`,
+    "-H", "Editor-Plugin-Version: CodexCLI/*",
+    "-H", "Copilot-Integration-Id: vscode-chat",
+    "https://api.github.com/copilot_internal/v2/token",
+  ]);
+  if (result.status !== 0) {
+    throw new Error(`Failed to fetch Copilot token: ${result.stderr?.toString()}`);
+  }
+  let data;
+  try {
+    data = JSON.parse(result.stdout?.toString() || "");
+  } catch (err) {
+    throw new Error(`Failed to parse Copilot token response: ${err}`);
+  }
+  if (!data.token || !data.expires_at) {
+    throw new Error(`Invalid response from Copilot token endpoint: ${result.stdout?.toString()}`);
+  }
+  cachedCopilotToken = data.token;
+  copilotTokenExpiresAt = new Date(data.expires_at).getTime();
+  return cachedCopilotToken;
+}
+
 export function getApiKey(provider: string = "openai"): string | undefined {
+  if (provider.toLowerCase() === "copilot") {
+    return getCopilotToken();
+  }
   const config = loadConfig();
   const providersConfig = config.providers ?? providers;
   const providerInfo = providersConfig[provider.toLowerCase()];

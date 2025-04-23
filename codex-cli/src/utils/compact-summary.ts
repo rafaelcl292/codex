@@ -2,6 +2,7 @@ import type { AppConfig } from "./config.js";
 import type { ResponseItem } from "openai/resources/responses/responses.mjs";
 
 import { getBaseUrl, getApiKey } from "./config.js";
+import { getCopilotHeaders } from "./copilot.js";
 import OpenAI from "openai";
 /**
  * Generate a condensed summary of the conversation items.
@@ -23,10 +24,25 @@ export async function generateCompactSummary(
   flexMode = false,
   config: AppConfig,
 ): Promise<string> {
-  const oai = new OpenAI({
-    apiKey: getApiKey(config.provider),
-    baseURL: getBaseUrl(config.provider),
-  });
+  // Initialize client, using Copilot headers if selected
+  let oaiOptions: {
+    apiKey?: string;
+    defaultHeaders?: Record<string, string>;
+    baseURL?: string;
+  };
+  if (config.provider === "copilot") {
+    const headers = await getCopilotHeaders();
+    oaiOptions = {
+      defaultHeaders: headers,
+      baseURL: getBaseUrl(config.provider),
+    };
+  } else {
+    oaiOptions = {
+      apiKey: getApiKey(config.provider),
+      baseURL: getBaseUrl(config.provider),
+    };
+  }
+  const oai = new OpenAI(oaiOptions);
 
   const conversationText = items
     .filter(

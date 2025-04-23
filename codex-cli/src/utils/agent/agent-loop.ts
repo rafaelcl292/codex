@@ -304,6 +304,14 @@ export class AgentLoop {
         originator: ORIGIN,
         version: CLI_VERSION,
         session_id: this.sessionId,
+        ...(this.provider.toLowerCase() === "copilot"
+          ? {
+              "User-Agent": "GitHubCopilot/1.0.0",
+              "Editor-Version": `CodexCLI/${CLI_VERSION}`,
+              "Editor-Plugin-Version": `CodexCLI/*`,
+              "Copilot-Integration-Id": "vscode-chat",
+            }
+          : {}),
       },
       ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
     });

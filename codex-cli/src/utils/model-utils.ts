@@ -2,6 +2,7 @@ import type { ResponseItem } from "openai/resources/responses/responses.mjs";
 
 import { approximateTokensUsed } from "./approximate-tokens-used.js";
 import { getBaseUrl, getApiKey } from "./config";
+import { getCopilotHeaders } from "./copilot.js";
 import { type SupportedModelId, openAiModelInfo } from "./model-info.js";
 import OpenAI from "openai";
 
@@ -21,12 +22,22 @@ async function fetchModels(provider: string): Promise<Array<string>> {
     throw new Error("No API key configured for provider: " + provider);
   }
 
-  try {
-    const openai = new OpenAI({
-      apiKey: getApiKey(provider),
-      baseURL: getBaseUrl(provider),
-    });
-    const list = await openai.models.list();
+    try {
+      // Initialize client, using Copilot headers if selected
+      let openai: OpenAI;
+      if (provider === "copilot") {
+        const headers = await getCopilotHeaders();
+        openai = new OpenAI({
+          baseURL: getBaseUrl(provider)!,
+          defaultHeaders: headers,
+        });
+      } else {
+        openai = new OpenAI({
+          apiKey: getApiKey(provider),
+          baseURL: getBaseUrl(provider),
+        });
+      }
+      const list = await openai.models.list();
     const models: Array<string> = [];
     for await (const model of list as AsyncIterable<{ id?: string }>) {
       if (model && typeof model.id === "string") {

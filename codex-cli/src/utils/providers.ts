@@ -42,4 +42,9 @@ export const providers: Record<
     baseURL: "https://api.groq.com/openai/v1",
     envKey: "GROQ_API_KEY",
   },
+  copilot: {
+    name: "GitHub Copilot",
+    baseURL: "https://api.githubcopilot.com",
+    envKey: "GITHUB_COPILOT_TOKEN",
+  },
 };

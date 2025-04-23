@@ -14,6 +14,7 @@ import { AgentLoop } from "../../utils/agent/agent-loop.js";
 import { ReviewDecision } from "../../utils/agent/review.js";
 import { generateCompactSummary } from "../../utils/compact-summary.js";
 import { getBaseUrl, getApiKey, saveConfig } from "../../utils/config.js";
+import { getCopilotHeaders } from "../../utils/copilot.js";
 import { extractAppliedPatches as _extractAppliedPatches } from "../../utils/extract-applied-patches.js";
 import { getGitDiff } from "../../utils/get-diff.js";
 import { createInputItem } from "../../utils/input-utils.js";
@@ -76,11 +77,15 @@ async function generateCommandExplanation(
   config: AppConfig,
 ): Promise<string> {
   try {
-    // Create a temporary OpenAI client
-    const oai = new OpenAI({
-      apiKey: getApiKey(config.provider),
-      baseURL: getBaseUrl(config.provider),
-    });
+    // Initialize a temporary OpenAI client, using Copilot headers if selected
+    let clientOptions: { apiKey?: string; defaultHeaders?: Record<string, string>; baseURL?: string };
+    if (config.provider === "copilot") {
+      const headers = await getCopilotHeaders();
+      clientOptions = { defaultHeaders: headers, baseURL: getBaseUrl(config.provider) };
+    } else {
+      clientOptions = { apiKey: getApiKey(config.provider), baseURL: getBaseUrl(config.provider) };
+    }
+    const oai = new OpenAI(clientOptions);
 
     // Format the command for display
     const commandForDisplay = formatCommandForDisplay(command);

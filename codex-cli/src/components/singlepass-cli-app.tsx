@@ -6,6 +6,7 @@ import type { FileOperation } from "../utils/singlepass/file_ops";
 import Spinner from "./vendor/ink-spinner"; // Third‑party / vendor components
 import TextInput from "./vendor/ink-text-input";
 import { OPENAI_TIMEOUT_MS, getBaseUrl, getApiKey } from "../utils/config";
+import { getCopilotHeaders } from "../utils/copilot.js";
 import {
   generateDiffSummary,
   generateEditSummary,
@@ -393,11 +394,15 @@ export function SinglePassApp({
         files,
       });
 
-      const openai = new OpenAI({
-        apiKey: getApiKey(config.provider),
-        baseURL: getBaseUrl(config.provider),
-        timeout: OPENAI_TIMEOUT_MS,
-      });
+      // Initialize OpenAI client, using Copilot headers if selected
+      let clientOptions: { apiKey?: string; defaultHeaders?: Record<string, string>; baseURL?: string; timeout?: number };
+      if (config.provider === "copilot") {
+        const headers = await getCopilotHeaders();
+        clientOptions = { defaultHeaders: headers, baseURL: getBaseUrl(config.provider), timeout: OPENAI_TIMEOUT_MS };
+      } else {
+        clientOptions = { apiKey: getApiKey(config.provider), baseURL: getBaseUrl(config.provider), timeout: OPENAI_TIMEOUT_MS };
+      }
+      const openai = new OpenAI(clientOptions);
       const chatResp = await openai.beta.chat.completions.parse({
         model: config.model,
         ...(config.flexMode ? { service_tier: "flex" } : {}),
