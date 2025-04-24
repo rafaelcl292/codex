@@ -45,6 +45,6 @@ export const providers: Record<
   copilot: {
     name: "GitHub Copilot",
     baseURL: "https://api.githubcopilot.com",
-    envKey: "GITHUB_COPILOT_TOKEN",
+    envKey: "CODEX_GITHUB_COPILOT_TOKEN",
   },
 };

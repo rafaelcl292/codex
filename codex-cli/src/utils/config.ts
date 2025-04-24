@@ -72,9 +72,9 @@ let cachedCopilotToken: string | undefined;
 let copilotTokenExpiresAt: number | undefined;
 
 function getCopilotToken(): string | undefined {
-  const pat = process.env["GITHUB_COPILOT_TOKEN"];
+  const pat = process.env["CODEX_GITHUB_COPILOT_TOKEN"];
   if (!pat) {
-    throw new Error("Missing GITHUB_COPILOT_TOKEN env var for Copilot provider");
+    throw new Error("Missing CODEX_GITHUB_COPILOT_TOKEN env var for Copilot provider");
   }
   const now = Date.now();
   if (cachedCopilotToken && copilotTokenExpiresAt && now < copilotTokenExpiresAt) {

@@ -18,10 +18,10 @@ export async function getCopilotHeaders(): Promise<Record<string, string>> {
   if (cached && cached.expiresAt - now > REFRESH_MARGIN_MS) {
     return cached.headers;
   }
-  const pat = process.env["GITHUB_COPILOT_TOKEN"];
+  const pat = process.env["CODEX_GITHUB_COPILOT_TOKEN"];
   if (!pat) {
     throw new Error(
-      "GitHub Copilot provider requires GITHUB_COPILOT_TOKEN environment variable",
+      "GitHub Copilot provider requires CODEX_GITHUB_COPILOT_TOKEN environment variable",
     );
   }
   // Initial headers to fetch a Bearer token
